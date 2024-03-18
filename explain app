@@ -1,0 +1,145 @@
+1. app.js
+javascript
+Copy code
+const express = require('express');
+const bodyParser = require('body-parser');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const { calculateTotalPrice } = require('./services/priceCalculator');
+const { validateInput } = require('./middlewares/validation');
+const { Organization, Item, Pricing } = require('./models');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(bodyParser.json());
+Explanation:
+We import necessary packages: express for creating the server, body-parser to parse incoming request bodies, swagger-jsdoc to generate Swagger documentation, and swagger-ui-express to serve Swagger UI.
+We import functions from our custom modules: calculateTotalPrice from priceCalculator.js and validateInput from validation.js.
+We import Sequelize models for Organization, Item, and Pricing from models.js.
+We create an instance of the Express application.
+We define the port for the server to listen on.
+We set up middleware to parse JSON request bodies.
+2. API Route for Calculating Price
+
+// Routes
+app.post('/calculate-price', validateInput, async (req, res) => {
+  try {
+    const { zone, organization_id, total_distance, item_type } = req.body;
+
+    // Fetch pricing details from the database
+    const pricing = await Pricing.findOne({
+      where: { organization_id, zone },
+      include: [{ model: Item, where: { type: item_type } }],
+    });
+
+    if (!pricing) {
+      return res.status(404).json({ error: 'Pricing not found for the given parameters' });
+    }
+
+    // Calculate total price
+    const totalPrice = calculateTotalPrice(pricing, total_distance);
+
+    return res.json({ total_price: totalPrice });
+  } catch (error) {
+    console.error('Error calculating price:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+Explanation:
+We define a POST route /calculate-price to handle requests for calculating the delivery price.
+We use the validateInput middleware to validate the request body before proceeding.
+Inside the route handler:
+We extract necessary data from the request body: zone, organization_id, total_distance, and item_type.
+We query the database to find pricing details based on the provided parameters.
+If pricing information is not found, we return a 404 error.
+We call the calculateTotalPrice function to compute the total price.
+We send the total price as a JSON response.
+3. Swagger Configuration
+
+// Swagger configuration
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Food Delivery API',
+      version: '1.0.0',
+      description: 'API for calculating food delivery prices',
+    },
+  },
+  apis: ['./routes/*.js'], // Path to the API routes
+};
+
+const specs = swaggerJsdoc(options);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+Explanation:
+We configure Swagger documentation by defining metadata such as title, version, and description.
+We specify the path to the API routes (./routes/*.js).
+We generate Swagger documentation using swagger-jsdoc and serve it using swagger-ui-express at the endpoint /api-docs.
+4. Start Server
+javascript
+Copy code
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
+Explanation:
+We start the Express server and make it listen on the specified port (PORT).
+We log a message to the console indicating that the server is running.
+5. priceCalculator.js
+
+// services/priceCalculator.js
+
+// Function to calculate total price
+function calculateTotalPrice(pricing, totalDistance) {
+  const basePrice = pricing.fix_price;
+  const perKmPrice = pricing.km_price;
+  const baseDistance = pricing.base_distance_in_km;
+
+  let totalPrice = basePrice;
+
+  if (totalDistance > baseDistance) {
+    const additionalDistance = totalDistance - baseDistance;
+    totalPrice += additionalDistance * perKmPrice * 100; // Convert to cents to avoid decimal issues
+  }
+
+  return totalPrice / 100; // Convert back to euros
+}
+
+module.exports = { calculateTotalPrice };
+Explanation:
+This module contains a function calculateTotalPrice responsible for computing the total delivery price based on pricing details and total distance.
+The function takes pricing (from the database) and totalDistance as inputs.
+It calculates the total price considering the base price and additional per kilometer charges.
+Prices are handled in cents to avoid decimal issues and then converted back to euros before returning.
+6. validation.js
+
+// middlewares/validation.js
+
+function validateInput(req, res, next) {
+  const { zone, organization_id, total_distance, item_type } = req.body;
+
+  if (!zone || !organization_id || !total_distance || !item_type) {
+    return res.status(400).json({ error: 'Missing required fields in request body' });
+  }
+
+  // Additional validation logic if needed
+
+  next();
+}
+
+module.exports = { validateInput };
+Explanation:
+This middleware function validateInput validates the request body to ensure it contains all required fields.
+If any required field is missing, it returns a 400 error with a relevant message.
+Additional validation logic can be added here if needed.
+This breakdown provides a clear understanding of each part of the code and its purpose within the backend application for the food delivery system. You would need to complete the implementation by creating Sequelize models (models.js), defining database schemas, setting up the PostgreSQL database, and writing tests to cover all functionalities.
+
+
+
+
+
+
+
+
