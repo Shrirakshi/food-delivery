@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "The Food Delivery Pricing API is a comprehensive solution designed to address the dynamic pricing needs of food delivery services. By leveraging this API, businesses can automatically calculate delivery charges based on several critical factors, including the type of food item (perishable or non-perishable), the delivery distance, and the specific delivery zone. ",
+    "version": "1.0.0",
+    "title": "Food Delivery App Pricing API"
+  },
+  "servers": [
+    {
+      "url": "https://food-delivery-pricing-api-viga.onrender.com/api",
+      "description": "production server"
+    },
+    {
+      "url": "https://localhost:3001/api",
+      "description": "local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "pricing",
+      "description": "Everything about your Pricing"
+    }
+  ],
+  "paths": {
+    "/pricing": {
+      "post": {
+        "tags": ["pricing"],
+        "summary": "Calculate delivery cost",
+        "description": "",
+        "requestBody": {
+          "description": "Pricing information",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PricingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request format or parameters"
+          },
+          "404": {
+            "description": "Not Found - The specified resource was not found"
+          },
+          "500": {
+            "description": "Internal Server Error - An error occurred on the server"
+          }
+        }          
+      }
+    }
+  },
+  "components": { 
+    "schemas": {
+      "PricingRequest": {
+        "type": "object",
+        "properties": {
+          "zone": { "type": "string" },
+          "organization_id": { "type": "string" },
+          "total_distance": { "type": "number" },
+          "item_type": { "type": "string" }
+        },
+        "example": {
+          "zone": "central",
+          "organization_id": "7",
+          "total_distance": 15.1,
+          "item_type": "perishable"
+        }
+      },
+      "PricingResponse": {
+        "type": "object",
+        "properties": {
+          "total_price": { "type": "number" }
+        },
+        "example": { "total_price": 37.2 }
+      }
+    }
+  }
+}
